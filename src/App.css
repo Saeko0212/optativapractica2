@@ -1,0 +1,21 @@
+.color-navbar {
+  background-color: #212529; /* Un gris oscuro tipo Bootstrap Dark */
+}
+
+.margen-superior-main {
+  padding-top: 90px; /* Evita que el contenido quede detrás de la navbar fija */
+}
+
+.color-texto-marca {
+  color: #ffc107 !important; /* Un color ámbar para destacar elementos activos */
+}
+
+/* Estilo para que el Offcanvas combine con la Navbar */
+.offcanvas {
+  background-color: #212529;
+  color: white;
+}
+
+.offcanvas .btn-close {
+  filter: invert(1); /* Hace la X del menú blanca */
+}

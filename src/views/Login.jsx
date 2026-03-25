@@ -1,25 +1,73 @@
-import React from 'react';
-import { Container, Row, Col, Card } from 'react-bootstrap';
-import FormularioLogin from '../components/login/FormularioLogin'; // Ajusta la ruta si es necesario
+import React, { useState, useEffect } from "react"; 
+import { useNavigate } from "react-router-dom"; 
+import FormularioLogin from "../components/login/FormularioLogin"; 
+import { supabase } from "../database/supabaseconfig"; 
 
 const Login = () => {
+  // Variables de estado 
+  const [usuario, setUsuario] = useState("");
+  const [contrasena, setContrasena] = useState("");
+  const [error, setError] = useState(null);
+  const navegar = useNavigate(); 
+
+  // Validar si el usuario ya está autenticado 
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem("usuario-supabase");
+    if (usuarioGuardado) {
+      navegar("/"); 
+    }
+  }, [navegar]); 
+
+  // Método para el manejo de la sesión 
+  const iniciarSesion = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email: usuario,
+        password: contrasena,
+      });
+
+      if (error) {
+        setError("Usuario o contraseña incorrectos"); 
+        return;
+      }
+
+      if (data.user) {
+        localStorage.setItem("usuario-supabase", usuario); 
+        navegar("/"); 
+      }
+    } catch (err) {
+      setError("Error al conectar con el servidor"); 
+      console.error("Error en la solicitud:", err); 
+    }
+  };
+
+  // Estilos del contenedor 
+  const estiloContenedor = {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "108%",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "linear-gradient(135deg, #FFDEE9, #B5FFFC)",
+    overflow: "hidden",
+    padding: "20px",
+  };
+
   return (
-    <Container className="mt-5">
-      <Row className="justify-content-center">
-        <Col md={6} lg={4}>
-          <Card className="shadow-lg border-0">
-            <Card.Body className="p-4">
-              <h2 className="text-center mb-4">
-                <i className="bi-person-circle me-2"></i>
-                Iniciar Sesión
-              </h2>
-              <FormularioLogin />
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+    <div style={estiloContenedor}> 
+      <FormularioLogin
+        usuario={usuario}
+        contrasena={contrasena}
+        error={error}
+        setUsuario={setUsuario}
+        setContrasena={setContrasena}
+        iniciarSesion={iniciarSesion}
+      />
+    </div>
   );
 };
 
-export default Login;
+export default Login; 

@@ -1,67 +1,44 @@
-import React, { useState } from 'react';
-import { Form, Button, Alert } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../database/supabaseconfig';
+import React from "react"; 
+import { Form, Button, Card, Alert } from "react-bootstrap"; 
 
-const FormularioLogin = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
-
-  const manejarLogin = async (e) => {
-    e.preventDefault();
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      // Guardamos el usuario en localStorage como pide la práctica
-      localStorage.setItem('usuario-supabase', data.user.email);
-      
-      // Redirigimos al inicio
-      navigate('/');
-    } catch (err) {
-      setError("Credenciales incorrectas o error de conexión.");
-    }
-  };
-
+const FormularioLogin = ({ usuario, contrasena, error, setUsuario, setContrasena, iniciarSesion }) => { 
   return (
-    <Form onSubmit={manejarLogin}>
-      {error && <Alert variant="danger">{error}</Alert>}
-      
-      <Form.Group className="mb-3">
-        <Form.Label>Correo electrónico</Form.Label>
-        <Form.Control 
-          type="email" 
-          placeholder="ejemplo@correo.com" 
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required 
-        />
-      </Form.Group>
+    <Card style={{ minWidth: "320px", maxWidth: "400px", width: "100%" }} className="p-4 shadow-lg"> 
+      <Card.Body>
+        <h3 className="text-center mb-4">Iniciar Sesión</h3> 
 
-      <Form.Group className="mb-4">
-        <Form.Label>Contraseña</Form.Label>
-        <Form.Control 
-          type="password" 
-          placeholder="********" 
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required 
-        />
-      </Form.Group>
+        {error && <Alert variant="danger">{error}</Alert>} 
 
-      <Button variant="primary" type="submit" className="w-100">
-        Ingresar
-      </Button>
-    </Form>
+        <Form>
+          <Form.Group className="mb-3" controlId="usuario"> 
+            <Form.Label>Usuario</Form.Label> 
+            <Form.Control
+              type="text"
+              placeholder="Ingresa tu usuario"
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)} 
+              required
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="contrasena"> 
+            <Form.Label>Contraseña</Form.Label> 
+            <Form.Control
+              type="password"
+              placeholder="Ingresa tu contraseña"
+              value={contrasena}
+              onChange={(e) => setContrasena(e.target.value)} 
+              required
+            />
+          </Form.Group>
+
+          <Button variant="primary" className="w-100" onClick={iniciarSesion}> 
+            Iniciar Sesión
+          </Button>
+        </Form>
+      </Card.Body>
+    </Card>
   );
 };
 
-export default FormularioLogin;
+export default FormularioLogin; 

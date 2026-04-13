@@ -1,72 +1,137 @@
-import React, { useState } from "react";
-import { Container, Row, Col, Button } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Container, Row, Col, Spinner, Button } from "react-bootstrap";
 import { supabase } from "../database/supabaseconfig";
+import TablaCategorias from "../components/categorias/TablaCategorias";
 import ModalRegistroCategoria from "../components/categorias/ModalRegistroCategoria";
-import NotificacionOperacion from "../components/NotificacionOperacion";
 
 const Categorias = () => {
+  const [categorias, setCategorias] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
+  const [categoriaAEliminar, setCategoriaAEliminar] = useState(null);
+  const [mostrarModalEdicion, setMostrarModalEdicion] = useState(false);
+  const [categoriaEditar, setCategoriaEditar] = useState({
+    id_categoria: "",
+    nombre_categoria: "",
+    descripcion_categoria: "",
+  });
   const [toast, setToast] = useState({ mostrar: false, mensaje: "", tipo: "" });
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [nuevaCategoria, setNuevaCategoria] = useState({ nombre_categoria: "", descripcion_categoria: "" });
+
+  // Estados y lógica que tenías originalmente para el Registro
+  const [mostrarModalRegistro, setMostrarModalRegistro] = useState(false);
+  const [nuevaCategoria, setNuevaCategoria] = useState({
+    nombre_categoria: "",
+    descripcion_categoria: "",
+  });
+
+  const abrirModalEdicion = (categoria) => {
+    setCategoriaEditar(categoria);
+    setMostrarModalEdicion(true);
+  };
+
+  const abrirModalEliminacion = (categoria) => {
+    setCategoriaAEliminar(categoria);
+    setMostrarModalEliminacion(true);
+  };
+
+  const cargarCategorias = async () => {
+    try {
+      setCargando(true);
+      const { data, error } = await supabase
+        .from("categorias")
+        .select("*")
+        .order("id_categoria", { ascending: true });
+
+      if (error) {
+        console.error("Error al cargar categorías:", error.message);
+        setToast({ mostrar: true, mensaje: "Error al cargar categorías.", tipo: "error" });
+        return;
+      }
+      setCategorias(data || []);
+    } catch (err) {
+      console.error("Excepción al cargar categorías:", err.message);
+      setToast({ mostrar: true, mensaje: "Error inesperado al cargar categorías.", tipo: "error" });
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarCategorias();
+  }, []);
 
   const manejoCambioInput = (e) => {
     const { name, value } = e.target;
-    setNuevaCategoria((prev) => ({ ...prev, [name]: value }));
+    setNuevaCategoria({ ...nuevaCategoria, [name]: value });
   };
 
   const agregarCategoria = async () => {
     try {
-      if (!nuevaCategoria.nombre_categoria.trim() || !nuevaCategoria.descripcion_categoria.trim()) {
-        setToast({ mostrar: true, mensaje: "Debe llenar todos los campos.", tipo: "advertencia" });
-        return;
-      }
-
       const { error } = await supabase.from("categorias").insert([
-        { 
-          // Usamos 'nombre' y 'descripcion' porque así están en tu imagen
-          nombre: nuevaCategoria.nombre_categoria, 
-          descripcion: nuevaCategoria.descripcion_categoria 
+        {
+          nombre: nuevaCategoria.nombre_categoria,
+          descripcion: nuevaCategoria.descripcion_categoria,
         },
       ]);
-
-      if (error) throw error;
-
-      setToast({ 
-        mostrar: true, 
-        mensaje: `Categoría "${nuevaCategoria.nombre_categoria}" registrada exitosamente.`, 
-        tipo: "exito" 
-      });
+      if (error) {
+        console.error("Error al agregar:", error.message);
+        return;
+      }
+      setMostrarModalRegistro(false);
       setNuevaCategoria({ nombre_categoria: "", descripcion_categoria: "" });
-      setMostrarModal(false);
-
+      await cargarCategorias();
     } catch (err) {
-      setToast({ mostrar: true, mensaje: "Error al registrar categoría.", tipo: "error" });
+      console.error("Excepción al agregar:", err.message);
     }
   };
 
   return (
-    <Container className="mt-3">
-      <Row className="align-items-center mb-3">
-        <Col xs={9}>
-          <h3><i className="bi-bookmark-plus-fill me-2"></i> Categorías</h3>
+    <Container className="margen-superior-main">
+      <Row className="mb-3 align-items-center">
+        <Col>
+          <h2>Gestión de Categorías</h2>
         </Col>
-        <Col xs={3} className="text-end">
-          <Button onClick={() => setMostrarModal(true)}>
-            <i className="bi-plus-lg"></i> <span className="d-none d-sm-inline ms-2">Nueva Categoría</span>
+        <Col className="text-end">
+          <Button variant="primary" onClick={() => setMostrarModalRegistro(true)}>
+            <i className="bi bi-plus-circle me-2"></i> Agregar Categoría
           </Button>
         </Col>
       </Row>
       <hr />
-      <ModalRegistroCategoria 
-        mostrarModal={mostrarModal}
-        setMostrarModal={setMostrarModal}
+
+      {cargando && (
+        <Row className="text-center my-5">
+          <Col>
+            <Spinner animation="border" variant="success" size="lg" />
+            <p className="mt-3 text-muted">Cargando categorías...</p>
+          </Col>
+        </Row>
+      )}
+
+      {!cargando && categorias.length > 0 && (
+        <Row>
+          <Col lg={12}>
+            <TablaCategorias
+              categorias={categorias}
+              abrirModalEdicion={abrirModalEdicion}
+              abrirModalEliminacion={abrirModalEliminacion}
+            />
+          </Col>
+        </Row>
+      )}
+      
+      {!cargando && categorias.length === 0 && (
+        <div className="text-center mt-5 text-muted">
+          <h4>No hay categorías registradas</h4>
+        </div>
+      )}
+
+      <ModalRegistroCategoria
+        mostrarModal={mostrarModalRegistro}
+        setMostrarModal={setMostrarModalRegistro}
         nuevaCategoria={nuevaCategoria}
         manejoCambioInput={manejoCambioInput}
         agregarCategoria={agregarCategoria}
-      />
-      <NotificacionOperacion 
-        {...toast}
-        onCerrar={() => setToast({ ...toast, mostrar: false })}
       />
     </Container>
   );

@@ -3,6 +3,7 @@ import { Container, Row, Col, Spinner, Button } from "react-bootstrap";
 import { supabase } from "../database/supabaseconfig";
 import TablaCategorias from "../components/categorias/TablaCategorias";
 import ModalRegistroCategoria from "../components/categorias/ModalRegistroCategoria";
+import TarjetaCategoria from "../components/categorias/TarjetaCategoria";
 
 const Categorias = () => {
   const [categorias, setCategorias] = useState([]);
@@ -108,16 +109,30 @@ const Categorias = () => {
         </Row>
       )}
 
+      {/* 📱 VISTA MÓVIL: Muestra las tarjetas interactivas y se oculta en escritorio */}
       {!cargando && categorias.length > 0 && (
-        <Row>
-          <Col lg={12}>
-            <TablaCategorias
-              categorias={categorias}
-              abrirModalEdicion={abrirModalEdicion}
-              abrirModalEliminacion={abrirModalEliminacion}
-            />
-          </Col>
-        </Row>
+        <div className="d-lg-none">
+          <TarjetaCategoria
+            categorias={categorias}
+            abrirModalEdicion={abrirModalEdicion}
+            abrirModalEliminacion={abrirModalEliminacion}
+          />
+        </div>
+      )}
+
+      {/* 💻 VISTA ESCRITORIO: Muestra la tabla clásica y se oculta en móviles */}
+      {!cargando && categorias.length > 0 && (
+        <div className="d-none d-lg-block">
+          <Row>
+            <Col lg={12}>
+              <TablaCategorias
+                categorias={categorias}
+                abrirModalEdicion={abrirModalEdicion}
+                abrirModalEliminacion={abrirModalEliminacion}
+              />
+            </Col>
+          </Row>
+        </div>
       )}
       
       {!cargando && categorias.length === 0 && (

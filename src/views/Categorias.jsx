@@ -4,6 +4,8 @@ import { supabase } from "../database/supabaseconfig";
 import TablaCategorias from "../components/categorias/TablaCategorias";
 import ModalRegistroCategoria from "../components/categorias/ModalRegistroCategoria";
 import TarjetaCategoria from "../components/categorias/TarjetaCategoria";
+import ModalEdicionCategoria from "../components/categorias/ModalEdicionCategoria";
+import ModalEliminacionCategoria from "../components/categorias/ModalEliminacionCategoria";
 
 const Categorias = () => {
   const [categorias, setCategorias] = useState([]);
@@ -86,6 +88,51 @@ const Categorias = () => {
     }
   };
 
+  // Manejo de cambios en el formulario de edición
+  const manejoCambioInputEdicion = (e) => {
+    const { name, value } = e.target;
+    setCategoriaEditar((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Método para ACTUALIZAR en Supabase
+  const actualizarCategoria = async () => {
+    try {
+      const { error } = await supabase
+        .from("categorias")
+        .update({
+          nombre: categoriaEditar.nombre,
+          descripcion: categoriaEditar.descripcion,
+        })
+        .eq("id_categoria", categoriaEditar.id_categoria);
+
+      if (error) throw error;
+
+      await cargarCategorias();
+      setMostrarModalEdicion(false);
+      setToast({ mostrar: true, mensaje: "Categoría actualizada exitosamente.", tipo: "exito" });
+    } catch (err) {
+      setToast({ mostrar: true, mensaje: "Error al actualizar.", tipo: "error" });
+    }
+  };
+
+  // Método para ELIMINAR en Supabase
+  const eliminarCategoria = async () => {
+    try {
+      const { error } = await supabase
+        .from("categorias")
+        .delete()
+        .eq("id_categoria", categoriaAEliminar.id_categoria);
+
+      if (error) throw error;
+
+      await cargarCategorias();
+      setMostrarModalEliminacion(false);
+      setToast({ mostrar: true, mensaje: "Categoría eliminada exitosamente.", tipo: "exito" });
+    } catch (err) {
+      setToast({ mostrar: true, mensaje: "Error al eliminar.", tipo: "error" });
+    }
+  };
+
   return (
     <Container className="margen-superior-main">
       <Row className="mb-3 align-items-center">
@@ -147,6 +194,21 @@ const Categorias = () => {
         nuevaCategoria={nuevaCategoria}
         manejoCambioInput={manejoCambioInput}
         agregarCategoria={agregarCategoria}
+      />
+
+      <ModalEdicionCategoria 
+        mostrarModalEdicion={mostrarModalEdicion}
+        setMostrarModalEdicion={setMostrarModalEdicion}
+        categoriaEditar={categoriaEditar}
+        manejoCambioInputEdicion={manejoCambioInputEdicion}
+        actualizarCategoria={actualizarCategoria}
+      />
+
+      <ModalEliminacionCategoria 
+        mostrarModalEliminacion={mostrarModalEliminacion}
+        setMostrarModalEliminacion={setMostrarModalEliminacion}
+        eliminarCategoria={eliminarCategoria}
+        categoria={categoriaAEliminar}
       />
     </Container>
   );

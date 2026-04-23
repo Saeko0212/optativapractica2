@@ -178,7 +178,7 @@ const Categorias = () => {
   };
 
   return (
-    <Container className="mt-3 margen-superior-main">
+    <Container className="mt-3">
       <Row className="mb-3 align-items-center">
         <Col>
           <h2>Gestión de Categorías</h2>
@@ -192,7 +192,7 @@ const Categorias = () => {
       <hr />
 
       {/* Implementación del buscador */}
-      <Row className="mb-3 justify-content-end">
+      <Row className="mb-3 justify-content-start">
         <Col xs={12} md={6} lg={4}>
           <CuadroBusquedas busqueda={busqueda} setBusqueda={manejarBusqueda} />
         </Col>

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Spinner, Button } from "react-bootstrap";
+import { Container, Row, Col, Spinner, Button, Alert } from "react-bootstrap";
 import { supabase } from "../database/supabaseconfig";
 import TablaCategorias from "../components/categorias/TablaCategorias";
 import ModalRegistroCategoria from "../components/categorias/ModalRegistroCategoria";
 import TarjetaCategoria from "../components/categorias/TarjetaCategoria";
 import ModalEdicionCategoria from "../components/categorias/ModalEdicionCategoria";
 import ModalEliminacionCategoria from "../components/categorias/ModalEliminacionCategoria";
+import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
+import Paginacion from "../components/ordenamiento/Paginacion";
 
 const Categorias = () => {
   const [categorias, setCategorias] = useState([]);
@@ -26,6 +28,12 @@ const Categorias = () => {
     nombre_categoria: "",
     descripcion_categoria: "",
   });
+
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriasFiltradas, setCategoriasFiltradas] = useState([]);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [categoriasPaginadas, setCategoriasPaginadas] = useState([]);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(5);
 
   const abrirModalEdicion = (categoria) => {
     setCategoriaEditar(categoria);
@@ -62,6 +70,42 @@ const Categorias = () => {
   useEffect(() => {
     cargarCategorias();
   }, []);
+
+  // Método para controlar la búsqueda
+  const manejarBusqueda = (texto) => {
+    setBusqueda(texto);
+    setPaginaActual(1); // Reiniciar a la página 1 al buscar
+    if (texto === "") {
+      setCategoriasFiltradas(categorias);
+    } else {
+      const resultados = categorias.filter(
+        (cat) =>
+          cat.nombre.toLowerCase().includes(texto.toLowerCase()) ||
+          cat.descripcion.toLowerCase().includes(texto.toLowerCase())
+      );
+      setCategoriasFiltradas(resultados);
+    }
+  };
+
+  // Función para el cálculo de las páginas a mostrar
+  const calcularPaginacion = () => {
+    const indiceUltimoRegistro = paginaActual * registrosPorPagina;
+    const indicePrimerRegistro = indiceUltimoRegistro - registrosPorPagina;
+    const registrosActuales = categoriasFiltradas.slice(indicePrimerRegistro, indiceUltimoRegistro);
+    
+    setCategoriasPaginadas(registrosActuales);
+  };
+
+  // Carga inicial y filtrado cuando cambia 'categorias'
+  useEffect(() => {
+    setCategoriasFiltradas(categorias);
+    manejarBusqueda(busqueda); 
+  }, [categorias]);
+
+  // Recalcular páginas cuando cambia el filtro o la página actual
+  useEffect(() => {
+    calcularPaginacion();
+  }, [categoriasFiltradas, paginaActual, registrosPorPagina]);
 
   const manejoCambioInput = (e) => {
     const { name, value } = e.target;
@@ -134,7 +178,7 @@ const Categorias = () => {
   };
 
   return (
-    <Container className="margen-superior-main">
+    <Container className="mt-3 margen-superior-main">
       <Row className="mb-3 align-items-center">
         <Col>
           <h2>Gestión de Categorías</h2>
@@ -147,6 +191,13 @@ const Categorias = () => {
       </Row>
       <hr />
 
+      {/* Implementación del buscador */}
+      <Row className="mb-3 justify-content-end">
+        <Col xs={12} md={6} lg={4}>
+          <CuadroBusquedas busqueda={busqueda} setBusqueda={manejarBusqueda} />
+        </Col>
+      </Row>
+
       {cargando && (
         <Row className="text-center my-5">
           <Col>
@@ -156,36 +207,48 @@ const Categorias = () => {
         </Row>
       )}
 
+      {/* Alerta si no hay resultados */}
+      {categoriasFiltradas.length === 0 && !cargando && (
+        <Alert variant="info" className="text-center">
+          No se encontraron categorías.
+        </Alert>
+      )}
+
       {/* 📱 VISTA MÓVIL: Muestra las tarjetas interactivas y se oculta en escritorio */}
-      {!cargando && categorias.length > 0 && (
-        <div className="d-lg-none">
-          <TarjetaCategoria
-            categorias={categorias}
-            abrirModalEdicion={abrirModalEdicion}
-            abrirModalEliminacion={abrirModalEliminacion}
-          />
-        </div>
+      {!cargando && categoriasPaginadas.length > 0 && (
+        <Row className="d-lg-none">
+          <Col xs={12}>
+            <TarjetaCategoria
+              categorias={categoriasPaginadas}
+              abrirModalEdicion={abrirModalEdicion}
+              abrirModalEliminacion={abrirModalEliminacion}
+            />
+          </Col>
+        </Row>
       )}
 
       {/* 💻 VISTA ESCRITORIO: Muestra la tabla clásica y se oculta en móviles */}
-      {!cargando && categorias.length > 0 && (
-        <div className="d-none d-lg-block">
-          <Row>
-            <Col lg={12}>
-              <TablaCategorias
-                categorias={categorias}
-                abrirModalEdicion={abrirModalEdicion}
-                abrirModalEliminacion={abrirModalEliminacion}
-              />
-            </Col>
-          </Row>
-        </div>
+      {!cargando && categoriasPaginadas.length > 0 && (
+        <Row className="d-none d-lg-block">
+          <Col lg={12}>
+            <TablaCategorias
+              categorias={categoriasPaginadas}
+              abrirModalEdicion={abrirModalEdicion}
+              abrirModalEliminacion={abrirModalEliminacion}
+            />
+          </Col>
+        </Row>
       )}
       
-      {!cargando && categorias.length === 0 && (
-        <div className="text-center mt-5 text-muted">
-          <h4>No hay categorías registradas</h4>
-        </div>
+      {/* Implementación de la Paginación */}
+      {!cargando && categoriasFiltradas.length > 0 && (
+        <Paginacion 
+          registrosPorPagina={registrosPorPagina}
+          totalRegistros={categoriasFiltradas.length}
+          paginaActual={paginaActual}
+          establecerPaginaActual={setPaginaActual}
+          establecerRegistrosPorPagina={setRegistrosPorPagina}
+        />
       )}
 
       <ModalRegistroCategoria

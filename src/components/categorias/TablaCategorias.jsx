@@ -37,19 +37,10 @@ const TablaCategorias = ({ categorias, abrirModalEdicion, abrirModalEliminacion 
                 <td>{categoria.nombre}</td>
                 <td className="d-none d-md-table-cell">{categoria.descripcion}</td>
                 <td className="text-center">
-                  <Button
-                    variant="outline-warning"
-                    size="sm"
-                    className="m-1"
-                    onClick={() => abrirModalEdicion(categoria)}
-                  >
-                    <i className="bi bi-pencil"></i>
+                  <Button variant="warning" size="sm" className="me-2" onClick={() => abrirModalEdicion(categoria)}>
+                    <i className="bi bi-pencil-square"></i>
                   </Button>
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => abrirModalEliminacion(categoria)}
-                  >
+                  <Button variant="danger" size="sm" onClick={() => abrirModalEliminacion(categoria)}>
                     <i className="bi bi-trash"></i>
                   </Button>
                 </td>

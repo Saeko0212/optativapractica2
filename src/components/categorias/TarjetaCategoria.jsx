@@ -65,11 +65,11 @@ const TarjetaCategoria = ({ categorias, abrirModalEdicion, abrirModalEliminacion
 
               {tarjetaActiva && (
                 <div className="tarjeta-categoria-capa" onClick={(e) => { e.stopPropagation(); setIdTarjetaActiva(null); }}>
-                  <div className="d-flex gap-2 tarjeta-categoria-botones-capa" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="outline-warning" size="sm" onClick={() => abrirModalEdicion(categoria)}>
-                      <i className="bi bi-pencil"></i>
+                  <div className="d-flex tarjeta-categoria-botones-capa" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="warning" size="sm" className="me-2" onClick={() => abrirModalEdicion(categoria)}>
+                      <i className="bi bi-pencil-square"></i>
                     </Button>
-                    <Button variant="outline-danger" size="sm" onClick={() => abrirModalEliminacion(categoria)}>
+                    <Button variant="danger" size="sm" onClick={() => abrirModalEliminacion(categoria)}>
                       <i className="bi bi-trash"></i>
                     </Button>
                   </div>

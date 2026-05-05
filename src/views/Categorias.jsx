@@ -58,7 +58,14 @@ const Categorias = () => {
         setToast({ mostrar: true, mensaje: "Error al cargar categorías.", tipo: "error" });
         return;
       }
-      setCategorias(data || []);
+      
+      const dataMapeada = (data || []).map((cat) => ({
+        ...cat,
+        id_categoria: cat.id_categoria,
+        nombre: cat.nombre,
+        descripcion: cat.descripcion,
+      }));
+      setCategorias(dataMapeada);
     } catch (err) {
       console.error("Excepción al cargar categorías:", err.message);
       setToast({ mostrar: true, mensaje: "Error inesperado al cargar categorías.", tipo: "error" });
@@ -179,13 +186,17 @@ const Categorias = () => {
 
   return (
     <Container className="mt-3">
-      <Row className="mb-3 align-items-center">
-        <Col>
-          <h2>Gestión de Categorías</h2>
+      <Row className="align-items-center mb-3">
+        <Col className="d-flex align-items-center">
+          <h3 className="mb-0">
+            <i className="bi-tags-fill me-2"></i> Categorías
+          </h3>
         </Col>
-        <Col className="text-end">
-          <Button variant="primary" onClick={() => setMostrarModalRegistro(true)}>
-            <i className="bi bi-plus-circle me-2"></i> Agregar Categoría
+
+        <Col xs={3} sm={5} md={5} lg={5} className="text-end">
+          <Button onClick={() => setMostrarModalRegistro(true)} size="md">
+            <i className="bi-plus-lg"></i>
+            <span className="d-none d-sm-inline ms-2">Nueva Categoría</span>
           </Button>
         </Col>
       </Row>

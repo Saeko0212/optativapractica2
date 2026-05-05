@@ -2,8 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Button, Alert, Spinner } from "react-bootstrap";
 import { supabase } from "../database/supabaseconfig";
 import ModalRegistroProducto from "../components/productos/ModalRegistroProducto";
+import ModalEdicionProducto from "../components/productos/ModalEdicionProducto";
 import NotificacionOperacion from "../components/NotificacionOperacion";
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
+import TablaProductos from "../components/productos/TablaProductos";
+import TarjetaProducto from "../components/productos/TarjetaProducto";
+import ModalEliminacionProducto from "../components/productos/ModalEliminacionProducto";
+import Paginacion from "../components/ordenamiento/Paginacion";
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
@@ -13,6 +18,14 @@ const Productos = () => {
   const [cargando, setCargando] = useState(true);
 
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [mostrarModalEdicion, setMostrarModalEdicion] = useState(false);
+  
+  // Estados para Eliminación y Paginación
+  const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
+  const [productoAEliminar, setProductoAEliminar] = useState(null);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [productosPaginados, setProductosPaginados] = useState([]);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(5);
   const [toast, setToast] = useState({ mostrar: false, mensaje: "", tipo: "" });
 
   const [nuevoProducto, setNuevoProducto] = useState({
@@ -20,6 +33,16 @@ const Productos = () => {
     descripcion_producto: "",
     categoria_producto: "",
     precio_venta: "",
+    archivo: null,
+  });
+
+  const [productoEditar, setProductoEditar] = useState({
+    id_producto: "",
+    nombre_producto: "",
+    descripcion_producto: "",
+    categoria_producto: "",
+    precio_venta: "",
+    url_imagen: "",
     archivo: null,
   });
 
@@ -39,9 +62,26 @@ const Productos = () => {
     }
   };
 
+  // Manejo de Inputs Edición
+  const manejoCambioInputEdicion = (e) => {
+    const { name, value } = e.target;
+    setProductoEditar((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Manejo de la nueva imagen Edición
+  const manejoCambioArchivoActualizar = (e) => {
+    const archivo = e.target.files[0];
+    if (archivo && archivo.type.startsWith("image/")) {
+      setProductoEditar((prev) => ({ ...prev, archivo }));
+    } else {
+      alert("Selecciona una imagen válida (JPG, PNG, etc.)");
+    }
+  };
+
   // Buscador
   const manejarBusqueda = (e) => {
     setTextoBusqueda(e.target.value);
+    setPaginaActual(1); // Reinicia a la página 1 al buscar
   };
 
   useEffect(() => {
@@ -50,9 +90,9 @@ const Productos = () => {
     } else {
       const textoLower = textoBusqueda.toLowerCase().trim();
       const filtrados = productos.filter((prod) => {
-        const nombre = prod.nombre_producto?.toLowerCase() || "";
-        const descripcion = prod.descripcion_producto?.toLowerCase() || "";
-        const precio = prod.precio_venta?.toString() || "";
+        const nombre = prod.nombre?.toLowerCase() || "";
+        const descripcion = prod.descripcion?.toLowerCase() || "";
+        const precio = prod.precio?.toString() || "";
         return (
           nombre.includes(textoLower) ||
           descripcion.includes(textoLower) ||
@@ -63,6 +103,18 @@ const Productos = () => {
     }
   }, [textoBusqueda, productos]);
 
+  // Función para el cálculo de las páginas a mostrar
+  const calcularPaginacion = () => {
+    const indiceUltimoRegistro = paginaActual * registrosPorPagina;
+    const indicePrimerRegistro = indiceUltimoRegistro - registrosPorPagina;
+    const registrosActuales = productosFiltrados.slice(indicePrimerRegistro, indiceUltimoRegistro);
+    setProductosPaginados(registrosActuales);
+  };
+
+  useEffect(() => {
+    calcularPaginacion();
+  }, [productosFiltrados, paginaActual, registrosPorPagina]);
+
   // Carga inicial de categorías (para el select del Modal)
   const cargarCategorias = async () => {
     try {
@@ -71,14 +123,49 @@ const Productos = () => {
         .select("*")
         .order("id_categoria", { ascending: true });
       if (error) throw error;
-      setCategorias(data || []);
+      
+      const categoriasMapeadas = (data || []).map((cat) => ({
+        ...cat,
+        id_categoria: cat.id_categoria,
+        nombre: cat.nombre,
+      }));
+      setCategorias(categoriasMapeadas);
     } catch (err) {
       console.error("Error al cargar categorías:", err);
     }
   };
 
+  // Carga inicial de productos
+  const cargarProductos = async () => {
+    try {
+      setCargando(true);
+      const { data, error } = await supabase
+        .from("productos")
+        .select("*")
+        .order("id_productos", { ascending: true });
+      if (error) throw error;
+      
+      // Mapear los datos de la base de datos a lo que esperan los componentes
+      const productosMapeados = (data || []).map((prod) => ({
+        ...prod,
+        id_producto: prod.id_productos,
+        nombre: prod.nombre,
+        precio: prod.precio,
+        categoria_id: prod.categoria_id,
+        url_imagen: prod.url_imagen,
+        descripcion: prod.descripcion
+      }));
+      setProductos(productosMapeados);
+    } catch (err) {
+      console.error("Error al cargar productos:", err);
+    } finally {
+      setCargando(false);
+    }
+  };
+
   useEffect(() => {
     cargarCategorias();
+    cargarProductos();
   }, []);
 
   // Función principal: Agregar y Subir a Storage
@@ -122,10 +209,11 @@ const Productos = () => {
         .from("productos")
         .insert([
           {
-            nombre: nuevoProducto.nombre_producto, // Tu columna se llama 'nombre'
-            precio: parseFloat(nuevoProducto.precio_venta), // Tu columna se llama 'precio'
-            categoria_id: parseInt(nuevoProducto.categoria_producto), // Tu columna se llama 'categoria_id'
-            url_imagen: urlPublica, // La columna que vas a agregar ahora
+            nombre: nuevoProducto.nombre_producto,
+            precio: parseFloat(nuevoProducto.precio_venta),
+            categoria_id: parseInt(nuevoProducto.categoria_producto),
+            url_imagen: urlPublica,
+            descripcion: nuevoProducto.descripcion_producto || null
           },
         ]);
 
@@ -145,6 +233,111 @@ const Productos = () => {
     } catch (err) {
       console.error("Error al agregar producto:", err);
       setToast({ mostrar: true, mensaje: "Error al registrar producto", tipo: "error" });
+    }
+  };
+
+  // Función Principal de Actualización
+  const actualizarProducto = async () => {
+    try {
+      // 1. Validar campos obligatorios
+      if (
+        !productoEditar.nombre_producto.trim() ||
+        !productoEditar.categoria_producto ||
+        !productoEditar.precio_venta
+      ) {
+        setToast({
+          mostrar: true,
+          mensaje: "Completa los campos obligatorios",
+          tipo: "advertencia",
+        });
+        return;
+      }
+
+      setMostrarModalEdicion(false);
+
+      // 2. Preparar los datos actualizados (ajustando a los nombres de la base de datos)
+      let datosActualizados = {
+        nombre: productoEditar.nombre_producto,
+        precio: parseFloat(productoEditar.precio_venta),
+        categoria_id: parseInt(productoEditar.categoria_producto),
+        descripcion: productoEditar.descripcion_producto || null
+      };
+
+      // 3. Si se selecciona una nueva imagen, se sube al bucket 'imagenes_productos'
+      if (productoEditar.archivo) {
+        const nombreArchivo = `${Date.now()}_${productoEditar.archivo.name}`; 
+        
+        const { error: uploadError } = await supabase.storage
+          .from("imagenes_productos")
+          .upload(nombreArchivo, productoEditar.archivo);
+
+        if (uploadError) throw uploadError;
+
+        // 4. Se obtiene la URL pública de la nueva imagen
+        const { data: urlData } = supabase.storage
+          .from("imagenes_productos")
+          .getPublicUrl(nombreArchivo);
+          
+        datosActualizados.url_imagen = urlData.publicUrl;
+
+        // 5. Se elimina la imagen anterior del bucket
+        if (productoEditar.url_imagen) {
+          const nombreAnterior = productoEditar.url_imagen.split("/").pop().split("?")[0];
+          await supabase.storage.from("imagenes_productos").remove([nombreAnterior]).catch(() => {});
+        }
+      }
+
+      // 6. Finalmente, se actualizan los datos en la tabla 'productos'
+      const { error } = await supabase
+        .from("productos")
+        .update(datosActualizados)
+        .eq("id_productos", productoEditar.id_producto);
+
+      if (error) throw error;
+
+      await cargarProductos();
+
+      setToast({ mostrar: true, mensaje: "Producto actualizado correctamente", tipo: "exito" });
+
+    } catch (err) {
+      console.error("Error al actualizar:", err);
+      setToast({ mostrar: true, mensaje: "Error al actualizar producto", tipo: "error" });
+    }
+  };
+
+  // Métodos para abrir los Modales desde la Tabla / Tarjeta
+  const abrirModalEdicion = (producto) => {
+    setProductoEditar({
+      id_producto: producto.id_producto,
+      nombre_producto: producto.nombre,
+      descripcion_producto: producto.descripcion || "",
+      categoria_producto: producto.categoria_id,
+      precio_venta: producto.precio,
+      url_imagen: producto.url_imagen || "",
+      archivo: null,
+    });
+    setMostrarModalEdicion(true);
+  };
+
+  const abrirModalEliminacion = (producto) => {
+    setProductoAEliminar(producto);
+    setMostrarModalEliminacion(true);
+  };
+
+  // Método para Eliminar Producto
+  const eliminarProducto = async () => {
+    try {
+      if (productoAEliminar.url_imagen) {
+        const nombreAnterior = productoAEliminar.url_imagen.split("/").pop().split("?")[0];
+        await supabase.storage.from("imagenes_productos").remove([nombreAnterior]).catch(() => {});
+      }
+      const { error } = await supabase.from("productos").delete().eq("id_productos", productoAEliminar.id_producto);
+      if (error) throw error;
+      await cargarProductos();
+      setMostrarModalEliminacion(false);
+      setToast({ mostrar: true, mensaje: "Producto eliminado exitosamente.", tipo: "exito" });
+    } catch (err) {
+      setToast({ mostrar: true, mensaje: "Error al eliminar producto.", tipo: "error" });
     }
   };
 
@@ -178,8 +371,48 @@ const Productos = () => {
         </Col>
       </Row>
 
-      {/* Aquí podrías incluir la tabla de visualización de productos cuando tengas datos */}
-      {/* <TablaProductos productos={productosFiltrados} /> */}
+      {/* Mensajes y estados de carga */}
+      {cargando && (
+        <Row className="text-center my-5">
+          <Col>
+            <Spinner animation="border" variant="primary" size="lg" />
+            <p className="mt-3 text-muted">Cargando productos...</p>
+          </Col>
+        </Row>
+      )}
+
+      {productosFiltrados.length === 0 && !cargando && (
+        <Alert variant="info" className="text-center">
+          No se encontraron productos coincidentes.
+        </Alert>
+      )}
+
+      {/* 📱 VISTA MÓVIL: Tarjetas */}
+      {!cargando && productosPaginados.length > 0 && (
+        <Row className="d-lg-none">
+          <Col xs={12}>
+            <TarjetaProducto productos={productosPaginados} categorias={categorias} abrirModalEdicion={abrirModalEdicion} abrirModalEliminacion={abrirModalEliminacion} />
+          </Col>
+        </Row>
+      )}
+
+      {/* 💻 VISTA ESCRITORIO: Tabla */}
+      {!cargando && productosPaginados.length > 0 && (
+        <Row className="d-none d-lg-block">
+          <Col lg={12}>
+            <TablaProductos productos={productosPaginados} categorias={categorias} abrirModalEdicion={abrirModalEdicion} abrirModalEliminacion={abrirModalEliminacion} />
+          </Col>
+        </Row>
+      )}
+      
+      {/* Paginación Dinámica */}
+      {!cargando && productosFiltrados.length > 0 && (
+        <Paginacion 
+          registrosPorPagina={registrosPorPagina} totalRegistros={productosFiltrados.length}
+          paginaActual={paginaActual} establecerPaginaActual={setPaginaActual}
+          establecerRegistrosPorPagina={setRegistrosPorPagina}
+        />
+      )}
 
       {/* Modales */}
       <ModalRegistroProducto
@@ -190,6 +423,23 @@ const Productos = () => {
         manejoCambioArchivo={manejoCambioArchivo}
         agregarProducto={agregarProducto}
         categorias={categorias}
+      />
+
+      <ModalEdicionProducto
+        mostrarModalEdicion={mostrarModalEdicion}
+        setMostrarModalEdicion={setMostrarModalEdicion}
+        productoEditar={productoEditar}
+        manejoCambioInputEdicion={manejoCambioInputEdicion}
+        manejoCambioArchivoActualizar={manejoCambioArchivoActualizar}
+        actualizarProducto={actualizarProducto}
+        categorias={categorias}
+      />
+
+      <ModalEliminacionProducto
+        mostrarModalEliminacion={mostrarModalEliminacion}
+        setMostrarModalEliminacion={setMostrarModalEliminacion}
+        eliminarProducto={eliminarProducto}
+        producto={productoAEliminar}
       />
 
       <NotificacionOperacion

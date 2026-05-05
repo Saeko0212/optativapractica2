@@ -79,8 +79,9 @@ const Productos = () => {
   };
 
   // Buscador
-  const manejarBusqueda = (e) => {
-    setTextoBusqueda(e.target.value);
+  const manejarBusqueda = (valor) => {
+    const texto = typeof valor === 'string' ? valor : (valor?.target?.value || '');
+    setTextoBusqueda(texto);
     setPaginaActual(1); // Reinicia a la página 1 al buscar
   };
 
@@ -364,9 +365,8 @@ const Productos = () => {
         <Col md={6} lg={5}>
           {/* Asegúrate de que el componente CuadroBusquedas exista en esa ruta */}
           <CuadroBusquedas
-            textoBusqueda={textoBusqueda}
-            manejarCambioBusqueda={manejarBusqueda}
-            placeholder="Buscar por nombre, descripción o precio..."
+            busqueda={textoBusqueda}
+            setBusqueda={manejarBusqueda}
           />
         </Col>
       </Row>

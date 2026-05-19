@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react"; 
 import { useNavigate } from "react-router-dom"; 
 import FormularioLogin from "../components/login/FormularioLogin"; 
-import { supabase } from "../database/supabaseconfig"; 
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   // Variables de estado 
   const [usuario, setUsuario] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [error, setError] = useState(null);
+  const [cargando, setCargando] = useState(false);
   const navegar = useNavigate(); 
+  const { login } = useAuth();
 
   // Validar si el usuario ya está autenticado 
   useEffect(() => {
@@ -20,24 +22,22 @@ const Login = () => {
 
   // Método para el manejo de la sesión 
   const iniciarSesion = async () => {
+    if (!usuario || !contrasena) {
+      setError("Por favor ingresa usuario y contraseña");
+      return;
+    }
+
+    setCargando(true);
+    setError(null);
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email: usuario,
-        password: contrasena,
-      });
-
-      if (error) {
-        setError("Usuario o contraseña incorrectos"); 
-        return;
-      }
-
-      if (data.user) {
-        localStorage.setItem("usuario-supabase", usuario); 
-        navegar("/"); 
-      }
+      await login(usuario, contrasena);
+      navegar("/");
     } catch (err) {
-      setError("Error al conectar con el servidor"); 
       console.error("Error en la solicitud:", err); 
+      setError("Usuario o contraseña incorrectos");
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -47,7 +47,7 @@ const Login = () => {
     top: 0,
     left: 0,
     width: "100%",
-    height: "108%",
+    height: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
@@ -65,6 +65,7 @@ const Login = () => {
         setUsuario={setUsuario}
         setContrasena={setContrasena}
         iniciarSesion={iniciarSesion}
+        cargando={cargando}
       />
     </div>
   );

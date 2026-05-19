@@ -1,16 +1,26 @@
-import { Navigate } from 'react-router-dom';
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const RutaProtegida = ({ children }) => {
-  // Verificamos si existe el usuario en el localStorage según la guía [cite: 57, 58]
-  const usuario = localStorage.getItem('usuario-supabase');
+  const { usuario, cargando } = useAuth();
 
-  if (!usuario) {
-    // Si no hay usuario, redirigir al login [cite: 54]
-    return <Navigate to="/login" replace />;
+  // Mostrar indicador de carga mientras se verifica la sesión
+  if (cargando) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Cargando...</span>
+          </div>
+          <p className="mt-3 text-muted">Verificando sesión...</p>
+        </div>
+      </div>
+    );
   }
 
-  return children;
+  // Si no hay usuario autenticado, redirigir al login
+  return usuario ? children : <Navigate to="/login" replace />;
 };
 
-// ESTA LÍNEA ES LA QUE FALTA O ESTÁ MAL:
 export default RutaProtegida;

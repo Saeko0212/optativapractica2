@@ -53,7 +53,7 @@ const TarjetaCatalogo = ({ producto, categoriaNombre }) => {
           </Card.Title>
 
           {descripcion && (
-            <Card.Text className="text-muted small flex-grow-1">
+            <Card.Text as="div" className="text-muted small flex-grow-1">
               {previsualizacionTexto}
               {tieneMasTexto && (
                 <span className="text-primary fw-medium ms-1">

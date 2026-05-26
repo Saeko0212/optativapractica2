@@ -7,7 +7,7 @@ import Productos from "./views/Productos";
 import Empleados from "./views/Empleados";
 import Login from "./views/Login";
 import Permisos from "./views/Permisos";
-import Clientes from "./views/clientes";
+import Clientes from "./views/Clientes";
 import Ventas from "./views/ventas";
 import RutaProtegida from "./components/rutas/RutaProtegida";
 import Pagina404 from "./views/Pagina404";

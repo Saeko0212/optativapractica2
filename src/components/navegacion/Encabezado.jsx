@@ -86,6 +86,17 @@ const Encabezado = () => {
               {mostrarMenu ? <i className="bi-shield-lock-fill me-2"></i> : null} <strong>Permisos</strong>
             </Nav.Link>
           )}
+          
+           {tienePermiso("ver_ventas") && (
+            <Nav.Link onClick={() => manejarNavegacion("/clientes")} className={mostrarMenu ? "color-texto-marca" : "text-white"}>
+              {mostrarMenu ? <i className="bi-images me-2"></i> : null} <strong>cliente</strong>
+            </Nav.Link>
+          )}
+           {tienePermiso("ver_ventas") && (
+            <Nav.Link onClick={() => manejarNavegacion("/ventas")} className={mostrarMenu ? "color-texto-marca" : "text-white"}>
+              {mostrarMenu ? <i className="bi-images me-2"></i> : null} <strong>venta</strong>
+            </Nav.Link>
+          )}
           {tienePermiso("ver_catalogo") && (
             <Nav.Link onClick={() => manejarNavegacion("/catalogo")} className={mostrarMenu ? "color-texto-marca" : "text-white"}>
               {mostrarMenu ? <i className="bi-images me-2"></i> : null} <strong>Catálogo</strong>

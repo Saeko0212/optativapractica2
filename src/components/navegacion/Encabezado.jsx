@@ -4,12 +4,14 @@ import { Container, Nav, Navbar, Offcanvas } from 'react-bootstrap';
 import logo from "../../assets/logo.png";
 import { supabase } from "../../database/supabaseconfig";
 import { useAuth } from "../../context/AuthContext";
+import ChatIA from '../ia/ChatIA';
 
 const Encabezado = () => {
   const [mostrarMenu, setMostrarMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { usuario, tienePermiso, logout } = useAuth();
+const [mostrarChatIA, setMostrarChatIA] = useState(false);
 
   const manejarToggle = () => setMostrarMenu(!mostrarMenu);
 
@@ -92,6 +94,10 @@ const Encabezado = () => {
               {mostrarMenu ? <i className="bi-images me-2"></i> : null} <strong>cliente</strong>
             </Nav.Link>
           )}
+            <Nav.Link onClick={() => setMostrarChatIA(true)} className="text-white">
+            <i className="bi bi-robot me-2"></i>
+            </Nav.Link>
+
            {tienePermiso("ver_ventas") && (
             <Nav.Link onClick={() => manejarNavegacion("/ventas")} className={mostrarMenu ? "color-texto-marca" : "text-white"}>
               {mostrarMenu ? <i className="bi-images me-2"></i> : null} <strong>venta</strong>
@@ -135,6 +141,7 @@ const Encabezado = () => {
           <img alt="" src={logo} width="45" height="45" className="d-inline-block me-2" />
           <strong><h4 className="mb-0">Discosa</h4></strong>
         </Navbar.Brand>
+        <ChatIA mostrar={mostrarChatIA} onCerrar={() => setMostrarChatIA(false)} />
         {!esLogin && <Navbar.Toggle aria-controls="menu-offcanvas" onClick={manejarToggle} />}
         <Navbar.Offcanvas
           id="menu-offcanvas"

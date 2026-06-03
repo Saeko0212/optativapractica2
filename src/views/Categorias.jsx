@@ -6,10 +6,12 @@ import ModalRegistroCategoria from "../components/categorias/ModalRegistroCatego
 import TarjetaCategoria from "../components/categorias/TarjetaCategoria";
 import ModalEdicionCategoria from "../components/categorias/ModalEdicionCategoria";
 import ModalEliminacionCategoria from "../components/categorias/ModalEliminacionCategoria";
+import ModalEnvioCorreoCategorias from "../components/categorias/ModalEnvioCorreoCategorias";
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
 import Paginacion from "../components/ordenamiento/Paginacion";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import emailjs from "@emailjs/browser";
 
 const Categorias = () => {
   const [categorias, setCategorias] = useState([]);
@@ -36,6 +38,11 @@ const Categorias = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [categoriasPaginadas, setCategoriasPaginadas] = useState([]);
   const [registrosPorPagina, setRegistrosPorPagina] = useState(5);
+
+  // Estados para el Modal de Correo
+  const [mostrarModalCorreo, setMostrarModalCorreo] = useState(false);
+  const [emailDestino, setEmailDestino] = useState("");
+  const [enviandoCorreo, setEnviandoCorreo] = useState(false);
 
   const abrirModalEdicion = (categoria) => {
     setCategoriaEditar(categoria);
@@ -101,7 +108,7 @@ const Categorias = () => {
     const indiceUltimoRegistro = paginaActual * registrosPorPagina;
     const indicePrimerRegistro = indiceUltimoRegistro - registrosPorPagina;
     const registrosActuales = categoriasFiltradas.slice(indicePrimerRegistro, indiceUltimoRegistro);
-    
+
     setCategoriasPaginadas(registrosActuales);
   };
 
@@ -186,6 +193,81 @@ const Categorias = () => {
     }
   };
 
+  // Inicializar EmailJS
+  useEffect(() => {
+    emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
+  }, []);
+
+  const abrirModalCorreo = () => {
+    setEmailDestino("");
+    setMostrarModalCorreo(true);
+  };
+
+  const formatearCategoriasParaCorreo = () => {
+    if (categorias.length === 0) return "No hay categorías registradas en este momento.";
+
+    let texto = "";
+
+    categorias.forEach((cat, index) => {
+      const descripcion = cat.descripcion_categoria || cat.descripcion || "Sin descripción";
+      
+      texto += `📦 CATEGORÍA #${index + 1}: ${cat.nombre_categoria || cat.nombre}\n`;
+      texto += `📝 Detalle: ${descripcion}\n`;
+      texto += `--------------------------------------------------\n\n`;
+    });
+
+    return texto;
+  };
+
+  const enviarCorreoCategorias = () => {
+    if (!emailDestino.trim()) {
+      setToast({
+        mostrar: true,
+        mensaje: "Por favor ingresa un correo destino.",
+        tipo: "advertencia",
+      });
+      return;
+    }
+
+    setEnviandoCorreo(true);
+
+    const mensaje = formatearCategoriasParaCorreo();
+
+    const templateParams = {
+      to_name: "Administrador",
+      user_email: emailDestino,
+      message: mensaje,
+      fecha_envio: new Date().toLocaleDateString("es-NI")
+    };
+
+    emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+      templateParams
+    )
+      .then(() => {
+        setToast({
+          mostrar: true,
+          mensaje: "Correo enviado correctamente.",
+          tipo: "exito",
+        });
+        setMostrarModalCorreo(false);
+        setEmailDestino("");
+      })
+      .catch((error) => {
+        console.error("Error EmailJS:", error);
+        setToast({
+          mostrar: true,
+          mensaje: "Error al enviar el correo.",
+          tipo: "error",
+        });
+      })
+      .finally(() => {
+        setEnviandoCorreo(false);
+      });
+  };
+
+
   const generarPDFCategoria = (categoria) => {
 
   const doc = new jsPDF();
@@ -221,8 +303,12 @@ const Categorias = () => {
             <i className="bi-tags-fill me-2"></i> Categorías
           </h3>
         </Col>
-
-        <Col xs={3} sm={5} md={5} lg={5} className="text-end">
+        
+        <Col className="text-end d-flex justify-content-end gap-2">
+          <Button variant="primary" onClick={abrirModalCorreo} size="md">
+            <i className="bi bi-envelope"></i>
+            <span className="d-none d-lg-inline ms-2">Enviar por Correo</span>
+          </Button>
           <Button onClick={() => setMostrarModalRegistro(true)} size="md">
             <i className="bi-plus-lg"></i>
             <span className="d-none d-sm-inline ms-2">Nueva Categoría</span>
@@ -315,6 +401,17 @@ const Categorias = () => {
         eliminarCategoria={eliminarCategoria}
         categoria={categoriaAEliminar}
       />
+
+      <ModalEnvioCorreoCategorias
+  mostrarModalCorreo={mostrarModalCorreo}
+  setMostrarModalCorreo={setMostrarModalCorreo}
+  emailDestino={emailDestino}
+  setEmailDestino={setEmailDestino}
+  enviandoCorreo={enviandoCorreo}
+  enviarCorreoCategorias={enviarCorreoCategorias}
+  totalCategorias={categorias.length}
+/>
+
     </Container>
   );
 };

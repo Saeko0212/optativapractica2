@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Card, Row, Col, Spinner, Button } from "react-bootstrap";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
-const TarjetaCategoria = ({ categorias, abrirModalEdicion, abrirModalEliminacion }) => {
+const TarjetaCategoria = ({ categorias, abrirModalEdicion, abrirModalEliminacion, copiarCategoria }) => {
   const [cargando, setCargando] = useState(true);
   const [idTarjetaActiva, setIdTarjetaActiva] = useState(null);
 
@@ -71,6 +71,9 @@ const TarjetaCategoria = ({ categorias, abrirModalEdicion, abrirModalEliminacion
                     </Button>
                     <Button variant="danger" size="sm" onClick={() => abrirModalEliminacion(categoria)}>
                       <i className="bi bi-trash"></i>
+                    </Button>
+                    <Button variant="outline-success" size="sm" className="ms-2 bg-white" onClick={() => copiarCategoria(categoria)} title="Copiar al portapapeles">
+                      <i className="bi bi-clipboard"></i>
                     </Button>
                   </div>
                 </div>

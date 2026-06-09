@@ -1,7 +1,7 @@
 import React from "react";
 import { Table, Button } from "react-bootstrap";
 
-const TablaProductos = ({ productos, categorias, abrirModalEdicion, abrirModalEliminacion }) => {
+const TablaProductos = ({ productos, categorias, abrirModalEdicion, abrirModalEliminacion, copiarProducto, generarQRImagen }) => {
   
   // Función auxiliar para obtener el nombre de la categoría por su ID
   const obtenerNombreCategoria = (id) => {
@@ -51,6 +51,12 @@ const TablaProductos = ({ productos, categorias, abrirModalEdicion, abrirModalEl
               </Button>
               <Button variant="danger" size="sm" onClick={() => abrirModalEliminacion(producto)}>
                 <i className="bi bi-trash"></i>
+              </Button>
+              <Button variant="outline-success" size="sm" className="m-1" onClick={() => copiarProducto(producto)} title="Copiar al portapapeles">
+                <i className="bi bi-clipboard"></i>
+              </Button>
+              <Button variant="outline-primary" size="sm" className="m-1" onClick={() => generarQRImagen(producto)} title="Generar código QR de la imagen">
+                <i className="bi bi-qr-code"></i>
               </Button>
             </td>
           </tr>

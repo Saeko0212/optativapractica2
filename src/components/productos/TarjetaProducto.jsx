@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, Button, Row, Col, Badge } from "react-bootstrap";
 
-const TarjetaProducto = ({ productos, categorias, abrirModalEdicion, abrirModalEliminacion }) => {
+const TarjetaProducto = ({ productos, categorias, abrirModalEdicion, abrirModalEliminacion, copiarProducto, generarQRImagen }) => {
   
   const obtenerNombreCategoria = (id) => {
     const categoria = categorias.find((cat) => cat.id_categoria === id);
@@ -40,6 +40,12 @@ const TarjetaProducto = ({ productos, categorias, abrirModalEdicion, abrirModalE
                 </Button>
                 <Button variant="danger" size="sm" onClick={() => abrirModalEliminacion(producto)}>
                   <i className="bi bi-trash me-1"></i> Eliminar
+                </Button>
+                <Button variant="outline-success" size="sm" className="ms-2" onClick={() => copiarProducto(producto)} title="Copiar al portapapeles">
+                  <i className="bi bi-clipboard"></i>
+                </Button>
+                <Button variant="outline-primary" size="sm" className="ms-2" onClick={() => generarQRImagen(producto)} title="Generar código QR de la imagen">
+                  <i className="bi bi-qr-code"></i>
                 </Button>
               </div>
             </Card.Body>

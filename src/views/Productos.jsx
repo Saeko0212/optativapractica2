@@ -9,6 +9,7 @@ import TablaProductos from "../components/productos/TablaProductos";
 import TarjetaProducto from "../components/productos/TarjetaProducto";
 import ModalEliminacionProducto from "../components/productos/ModalEliminacionProducto";
 import Paginacion from "../components/ordenamiento/Paginacion";
+import ModalQRProducto from "../components/productos/ModalQRProducto";
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
@@ -35,6 +36,9 @@ const Productos = () => {
     precio_venta: "",
     archivo: null,
   });
+
+  const [mostrarModalQR, setMostrarModalQR] = useState(false);
+  const [productoQR, setProductoQR] = useState(null);
 
   const [productoEditar, setProductoEditar] = useState({
     id_producto: "",
@@ -342,6 +346,39 @@ const Productos = () => {
     }
   };
 
+  // Función para Generar el QR
+  const generarQRImagen = (producto) => {
+    if (!producto?.url_imagen) {
+      setToast({
+        mostrar: true,
+        mensaje: "Este producto no tiene imagen asociada",
+        tipo: "advertencia"
+      });
+      return;
+    }
+    setProductoQR(producto);
+    setMostrarModalQR(true);
+  };
+
+  // Función para Copiar Producto
+  const copiarProducto = async (producto) => {
+    if (!producto) return;
+    
+    const id = producto.id_productos || producto.id_producto;
+    const nombre = producto.nombre || producto.nombre_producto;
+    const precio = producto.precio || producto.precio_venta;
+
+    const texto = `ID: ${id}\nProducto: ${nombre}\nPrecio: C$ ${precio}`;
+
+    try {
+      await navigator.clipboard.writeText(texto);
+      setToast({ mostrar: true, mensaje: `Producto "${nombre}" copiado`, tipo: "exito" });
+    } catch (err) {
+      console.error("Error al copiar:", err);
+      setToast({ mostrar: true, mensaje: "No se pudo copiar al portapapeles", tipo: "error" });
+    }
+  };
+
   return (
     <Container className="mt-3">
       <Row className="align-items-center mb-3">
@@ -391,7 +428,14 @@ const Productos = () => {
       {!cargando && productosPaginados.length > 0 && (
         <Row className="d-lg-none">
           <Col xs={12}>
-            <TarjetaProducto productos={productosPaginados} categorias={categorias} abrirModalEdicion={abrirModalEdicion} abrirModalEliminacion={abrirModalEliminacion} />
+            <TarjetaProducto 
+              productos={productosPaginados} 
+              categorias={categorias} 
+              abrirModalEdicion={abrirModalEdicion} 
+              abrirModalEliminacion={abrirModalEliminacion} 
+              copiarProducto={copiarProducto}
+              generarQRImagen={generarQRImagen} 
+            />
           </Col>
         </Row>
       )}
@@ -400,7 +444,14 @@ const Productos = () => {
       {!cargando && productosPaginados.length > 0 && (
         <Row className="d-none d-lg-block">
           <Col lg={12}>
-            <TablaProductos productos={productosPaginados} categorias={categorias} abrirModalEdicion={abrirModalEdicion} abrirModalEliminacion={abrirModalEliminacion} />
+            <TablaProductos 
+              productos={productosPaginados} 
+              categorias={categorias} 
+              abrirModalEdicion={abrirModalEdicion} 
+              abrirModalEliminacion={abrirModalEliminacion} 
+              copiarProducto={copiarProducto}
+              generarQRImagen={generarQRImagen} 
+            />
           </Col>
         </Row>
       )}
@@ -447,6 +498,12 @@ const Productos = () => {
         mensaje={toast.mensaje}
         tipo={toast.tipo}
         onCerrar={() => setToast({ ...toast, mostrar: false })}
+      />
+
+      <ModalQRProducto
+        mostrar={mostrarModalQR}
+        onHide={() => setMostrarModalQR(false)}
+        producto={productoQR}
       />
     </Container>
   );

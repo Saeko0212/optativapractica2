@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Container, Row, Col, Card, Spinner, Form, Button } from "react-bootstrap";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell
 } from "recharts";
 import { supabase } from "../database/supabaseconfig";
 import * as XLSX from 'xlsx';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 const Inicio = () => {
   const [cargando, setCargando] = useState(true);
@@ -20,6 +23,10 @@ const Inicio = () => {
     ventasPorHora: [],
     ventasPorCategoria: []
   });
+
+  const graficoHoraRef = useRef(null);
+  const graficoCategoriaRef = useRef(null);
+  const reporteGeneralRef = useRef(null);
 
   const COLORES = ["#5e26b2", "#39ff95", "#ff6bc6", "#8b46ff", "#00d4ff", "#ffd93d"];
 
@@ -212,6 +219,139 @@ const Inicio = () => {
     }
   };
 
+  const generarPdfVentasHora = async () => {
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      // Título y fechas
+      pdf.setFontSize(18);
+      pdf.setTextColor("#330775");
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Reporte de Ventas por Hora", 14, 15);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor("#000000");
+      pdf.setFontSize(10);
+      pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 22);
+
+      // Imagen del gráfico de Hora
+      const canvas = await html2canvas(graficoHoraRef.current);
+      const imagen = canvas.toDataURL("image/png");
+      pdf.addImage(imagen, "PNG", 10, 30, 190, 80);
+
+      // Resumen general
+      pdf.setFontSize(14);
+      pdf.setTextColor("#330775");
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Resumen General", 14, 115);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor("#000000");
+      pdf.setFontSize(10);
+
+      pdf.text(`Total Ventas: C$ ${estadisticas.totalVentas?.toFixed(2) || '0.00'}`, 14, 125);
+      pdf.text(`Ventas Efectivo: C$ ${estadisticas.ventasEfectivo?.toFixed(2) || '0.00'}`, 14, 132);
+      pdf.text(`Ventas Tarjeta: C$ ${estadisticas.ventasTarjeta?.toFixed(2) || '0.00'}`, 14, 139);
+      pdf.text(`Productos Vendidos: ${estadisticas.productosVendidos || 0}`, 14, 146);
+      pdf.text(`Cantidad Ventas: ${estadisticas.cantidadVentas || 0}`, 14, 153);
+
+      // Tabla de ventas por hora
+      const filas = estadisticas.ventasPorHora?.map(item => [
+        item.hora,
+        `C$ ${item.total}`
+      ]) || [];
+
+      autoTable(pdf, {
+        startY: 160,
+        head: [["Hora", "Monto Acumulado"]],
+        body: filas
+      });
+
+      // Descargar PDF
+      const fechaActual = new Date().toLocaleDateString("es-NI");
+      pdf.save(`VentasHora_${fechaDesde}_${fechaHasta}_Generado_${fechaActual}.pdf`);
+
+    } catch (error) {
+      console.error(error);
+      alert("Error generando PDF");
+    }
+  };
+
+  const generarPdfVentasCategoria = async () => {
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      pdf.setFontSize(18);
+      pdf.setTextColor("#330775");
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Reporte de Ventas por Categoría", 14, 15);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor("#000000");
+      pdf.setFontSize(10);
+      pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 22);
+
+      // Imagen del gráfico de Categoría
+      const canvas = await html2canvas(graficoCategoriaRef.current);
+      const imagen = canvas.toDataURL("image/png");
+      pdf.addImage(imagen, "PNG", 10, 30, 190, 80);
+
+      // Tabla de ventas por Categoría
+      const filas = estadisticas.ventasPorCategoria?.map(item => [
+        item.name,
+        `C$ ${item.value.toFixed(2)}`
+      ]) || [];
+
+      autoTable(pdf, {
+        startY: 120,
+        head: [["Categoría", "Monto Generado"]],
+        body: filas
+      });
+
+      const fechaActual = new Date().toLocaleDateString("es-NI");
+      pdf.save(`VentasCategoria_${fechaDesde}_${fechaHasta}_Generado_${fechaActual}.pdf`);
+
+    } catch (error) {
+      console.error(error);
+      alert("Error generando PDF de Categorías");
+    }
+  };
+
+  const generarPdfGeneral = async () => {
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      
+      pdf.setFontSize(18);
+      pdf.text("Reporte General de Estadísticas", 14, 15);
+      pdf.setFontSize(10);
+      pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 22);
+
+      // Captura todo el contenedor referenciado
+      const canvas = await html2canvas(reporteGeneralRef.current, { scale: 1 });
+      const imagen = canvas.toDataURL("image/png");
+      
+      // Ajustamos el tamaño para que quepa en un A4
+      const imgWidth = 190; 
+      const pageHeight = 295;  
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 30;
+
+      pdf.addImage(imagen, "PNG", 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imagen, "PNG", 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`Reporte_General_${new Date().toLocaleDateString("es-NI")}.pdf`);
+
+    } catch (error) {
+      console.error(error);
+      alert("Error generando PDF General");
+    }
+  };
+
   if (cargando) {
     return (
       <Container className="text-center mt-5">
@@ -222,7 +362,7 @@ const Inicio = () => {
   }
 
   return (
-    <div className="mt-2">
+    <div className="mt-2" ref={reporteGeneralRef}>
       <div className="mb-4">
         <h2>Dashboard</h2>
         <h6>Estadísticas del Negocio</h6>
@@ -241,10 +381,14 @@ const Inicio = () => {
             <Form.Control type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
           </Form.Group>
         </Col>
-        <Col md={3} className="d-flex align-items-end">
+        <Col md={6} className="d-flex align-items-end justify-content-end gap-2 mt-3 mt-md-0">
           <Button variant="success" onClick={descargarExcel}>
             <i className="bi bi-file-earmark-excel me-2"></i>
-            Descargar Excel
+            <span className="d-none d-sm-inline">Excel</span>
+          </Button>
+          <Button variant="danger" onClick={generarPdfGeneral}>
+            <i className="bi bi-file-earmark-pdf me-2"></i>
+            PDF General
           </Button>
         </Col>
       </Row>
@@ -287,7 +431,7 @@ const Inicio = () => {
       <Row className="g-4">
         <Col lg={8}>
           <Card className="shadow border-0">
-            <Card.Body>
+            <Card.Body ref={graficoHoraRef} className="bg-white">
               <h5 className="mb-3">Ventas por Hora</h5>
               <ResponsiveContainer width="100%" height={360}>
                 <LineChart data={estadisticas.ventasPorHora}>
@@ -299,11 +443,16 @@ const Inicio = () => {
                 </LineChart>
               </ResponsiveContainer>
             </Card.Body>
+            <div className="p-3 text-center border-top bg-light">
+              <Button variant="outline-danger" size="sm" onClick={generarPdfVentasHora}>
+                <i className="bi bi-file-earmark-pdf me-2"></i> Descargar PDF
+              </Button>
+            </div>
           </Card>
         </Col>
         <Col lg={4}>
           <Card className="shadow border-0">
-            <Card.Body>
+            <Card.Body ref={graficoCategoriaRef} className="bg-white">
               <h5 className="mb-3">Ventas por Categoría</h5>
               <ResponsiveContainer width="100%" height={360}>
                 <PieChart>
@@ -323,6 +472,11 @@ const Inicio = () => {
                 </PieChart>
               </ResponsiveContainer>
             </Card.Body>
+            <div className="p-3 text-center border-top bg-light">
+              <Button variant="outline-danger" size="sm" onClick={generarPdfVentasCategoria}>
+                <i className="bi bi-file-earmark-pdf me-2"></i> Descargar PDF
+              </Button>
+            </div>
           </Card>
         </Col>
       </Row>
